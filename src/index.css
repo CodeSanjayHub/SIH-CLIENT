@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* TransEmpower Design System - Inclusive & Empowering Design */
+
+@layer base {
+  :root {
+    /* Core Brand Colors - Inspired by transgender pride flag with professional touch */
+    --background: 0 0% 98%;
+    --foreground: 220 15% 15%;
+    
+    /* Empowering Primary - Soft professional blue */
+    --primary: 200 85% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 200 60% 85%;
+    --primary-glow: 200 85% 65%;
+    
+    /* Inclusive Secondary - Gentle pink */
+    --secondary: 330 45% 88%;
+    --secondary-foreground: 330 60% 25%;
+    --secondary-accent: 330 65% 70%;
+    
+    /* Supportive Accent - Warm coral */
+    --accent: 15 85% 70%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 15 60% 90%;
+    
+    /* Trust & Safety - Deep teal */
+    --trust: 180 45% 35%;
+    --trust-foreground: 0 0% 100%;
+    --trust-light: 180 30% 85%;
+    
+    /* Supporting Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+    --muted: 210 25% 95%;
+    --muted-foreground: 220 15% 45%;
+    --border: 210 25% 88%;
+    --input: 210 25% 92%;
+    --ring: 200 85% 45%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 60% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 90% 55%;
+    --warning-foreground: 45 90% 15%;
+    
+    /* Beautiful Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--secondary-accent)));
+    --gradient-empowerment: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-trust: linear-gradient(135deg, hsl(var(--trust)), hsl(var(--primary)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary-light)), hsl(var(--secondary)));
+    
+    /* Elegant Shadows */
+    --shadow-soft: 0 2px 10px -2px hsl(var(--primary) / 0.1);
+    --shadow-card: 0 4px 20px -4px hsl(var(--primary) / 0.15);
+    --shadow-empowerment: 0 8px 30px -8px hsl(var(--accent) / 0.2);
+    --shadow-trust: 0 6px 25px -6px hsl(var(--trust) / 0.15);
+    
+    /* Smooth Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 220 15% 8%;
+    --foreground: 0 0% 95%;
+    --card: 220 15% 10%;
+    --card-foreground: 0 0% 95%;
+    --primary: 200 85% 60%;
+    --primary-foreground: 220 15% 8%;
+    --secondary: 330 25% 20%;
+    --secondary-foreground: 330 45% 85%;
+    --accent: 15 65% 65%;
+    --accent-foreground: 220 15% 8%;
+    --trust: 180 45% 55%;
+    --trust-foreground: 220 15% 8%;
+    --muted: 220 15% 15%;
+    --muted-foreground: 220 15% 65%;
+    --border: 220 15% 20%;
+    --input: 220 15% 18%;
+    --ring: 200 85% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl lg:text-5xl leading-tight;
+  }
+
+  h2 {
+    @apply text-3xl lg:text-4xl leading-tight;
+  }
+
+  h3 {
+    @apply text-2xl lg:text-3xl leading-snug;
+  }
+}
+
+@layer components {
+  /* Hero Gradient Background */
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  /* Empowerment Cards */
+  .empowerment-card {
+    @apply bg-card border border-border rounded-xl p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-empowerment)] transition-[var(--transition-smooth)] hover:-translate-y-1;
+  }
+
+  /* Trust Badges */
+  .trust-badge {
+    @apply bg-gradient-to-r from-trust to-primary text-trust-foreground px-4 py-2 rounded-full text-sm font-medium shadow-[var(--shadow-trust)];
+  }
+
+  /* Service Cards */
+  .service-card {
+    @apply bg-card border border-border rounded-2xl p-8 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-empowerment)] transition-[var(--transition-smooth)] hover:scale-[1.02];
+  }
+
+  /* Form Styling */
+  .form-input {
+    @apply w-full px-4 py-3 bg-input border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-[var(--transition-smooth)] placeholder:text-muted-foreground;
+  }
+
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary to-primary-glow text-primary-foreground px-6 py-3 rounded-xl font-medium shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-card)] transition-[var(--transition-smooth)] hover:scale-105;
+  }
+
+  .btn-secondary {
+    @apply bg-gradient-to-r from-secondary to-secondary-accent text-secondary-foreground px-6 py-3 rounded-xl font-medium shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-card)] transition-[var(--transition-smooth)] hover:scale-105;
+  }
+
+  .btn-accent {
+    @apply bg-gradient-to-r from-accent to-accent-light text-accent-foreground px-6 py-3 rounded-xl font-medium shadow-[var(--shadow-empowerment)] hover:shadow-[var(--shadow-card)] transition-[var(--transition-bounce)] hover:scale-105;
+  }
+
+  .btn-trust {
+    @apply bg-gradient-to-r from-trust to-primary text-trust-foreground px-6 py-3 rounded-xl font-medium shadow-[var(--shadow-trust)] hover:shadow-[var(--shadow-card)] transition-[var(--transition-smooth)] hover:scale-105;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply relative px-4 py-2 text-foreground hover:text-primary transition-[var(--transition-smooth)] after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left;
+  }
+
+  /* Accessibility Focus States */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background;
+  }
+}
+
+@layer utilities {
+  /* Gradient Text */
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-empowerment {
+    background: var(--gradient-empowerment);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animation Utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .animate-bounce-in {
+    animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.9) translateY(20px);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.03) translateY(-5px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+}
