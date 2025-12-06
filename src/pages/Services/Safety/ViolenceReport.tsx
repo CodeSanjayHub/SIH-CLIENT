@@ -5,12 +5,13 @@ import {
   ArrowLeft,
   AlertTriangle,
   Upload,
-  FileText,
   Phone,
   ShieldAlert,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 const ViolenceReport = () => {
   const navigate = useNavigate();
@@ -19,14 +20,46 @@ const ViolenceReport = () => {
   const [description, setDescription] = useState("");
   const [evidence, setEvidence] = useState<FileList | null>(null);
   const [location, setLocation] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!violenceType || !description) {
       alert("⚠️ Please fill all required fields.");
       return;
     }
 
-    alert("✅ Your violence report has been submitted (Demo).");
+    setLoading(true);
+
+    try {
+      const form = new FormData();
+      form.append("userId", localStorage.getItem("userId") || "demoUser");
+      form.append("violenceType", violenceType);
+      form.append("description", description);
+      if (location) form.append("location", location);
+
+      // Evidence files
+      if (evidence) {
+        for (let i = 0; i < evidence.length; i++) {
+          form.append("evidence", evidence[i]);
+        }
+      }
+
+      const res = await fetch(`${API_BASE}/api/violence/report`, {
+        method: "POST",
+        body: form, // do NOT set Content-Type
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.error || "Submit failed");
+
+      alert("✅ Report successfully submitted!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to submit report: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLocationFetch = () => {
@@ -48,7 +81,7 @@ const ViolenceReport = () => {
     <div className="bg-muted/20 min-h-screen">
       <Navigation />
 
-      {/* Back Button */}
+      {/* Back */}
       <div className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <button
@@ -71,7 +104,6 @@ const ViolenceReport = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-16 space-y-16">
-
         {/* Overview */}
         <Card className="p-10 bg-white shadow-xl border">
           <div className="flex items-center gap-4 mb-10">
@@ -81,14 +113,14 @@ const ViolenceReport = () => {
             <div>
               <h2 className="text-3xl font-bold">Report Violence Safely</h2>
               <p className="text-muted-foreground mt-1">
-                Your report will be kept confidential (Demo only).
+                Your report will be kept confidential.
               </p>
             </div>
           </div>
 
-          {/* FORM */}
+          {/* Form */}
           <div className="space-y-8">
-            {/* Type of Violence */}
+            {/* Violence Type */}
             <div>
               <label className="font-semibold text-sm">Type of Violence *</label>
               <select
@@ -130,7 +162,7 @@ const ViolenceReport = () => {
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Supported: Images, Videos, Audio, PDF (Max 10MB each)
+                Supported: Images, Videos, Audio, PDF — Max 10MB each
               </p>
             </div>
 
@@ -145,21 +177,19 @@ const ViolenceReport = () => {
                   placeholder="Enter location or fetch GPS"
                   className="flex-1 border px-4 py-3 rounded-lg"
                 />
-                <Button
-                  onClick={handleLocationFetch}
-                  className="bg-blue-600 text-white px-6"
-                >
+                <Button onClick={handleLocationFetch} className="bg-blue-600 text-white px-6">
                   Auto-Fetch
                 </Button>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <Button
               className="w-full bg-gradient-to-r from-red-600 to-red-400 text-white py-3 text-lg"
               onClick={handleSubmit}
+              disabled={loading}
             >
-              Submit Report
+              {loading ? "Submitting..." : "Submit Report"}
             </Button>
           </div>
         </Card>
@@ -181,7 +211,7 @@ const ViolenceReport = () => {
 
             <Card className="p-5 bg-pink-50 border-pink-200">
               <h3 className="font-bold mb-2">Call Emergency Help</h3>
-              <p className="text-sm">Dial 1091 or local authorities in danger.</p>
+              <p className="text-sm">Dial 1091 or local authorities if in danger.</p>
             </Card>
           </div>
         </section>

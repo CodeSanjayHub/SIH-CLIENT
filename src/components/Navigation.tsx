@@ -8,7 +8,9 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
-  const isActive = (path: string) => location.pathname === path;
+  const token = localStorage.getItem("token"); // check if logged in
+
+  const isActive = (path) => location.pathname === path;
 
   const navItems = [
     { path: '/', label: 'Home' },
@@ -18,16 +20,20 @@ const Navigation = () => {
     { path: '/profile', label: 'Profile' },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.reload();
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-[var(--shadow-soft)]">
-      {/* Removed max-w-7xl + mx-auto */}
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Left Side - Logo and Brand */}
+          {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3 group">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl shadow-[var(--shadow-soft)] group-hover:shadow-[var(--shadow-card)] transition-[var(--transition-smooth)]">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl shadow-[var(--shadow-soft)] group-hover:shadow-[var(--shadow-card)] transition">
                 <Heart className="w-5 h-5 text-white" />
               </div>
               <div className="flex flex-col">
@@ -39,9 +45,8 @@ const Navigation = () => {
             </Link>
           </div>
 
-          {/* Right Side - Nav + Auth + Mobile Menu */}
+          {/* Desktop Menu */}
           <div className="flex items-center space-x-6">
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-4">
               {navItems.map((item) => (
                 <Link
@@ -57,42 +62,45 @@ const Navigation = () => {
               ))}
             </div>
 
-            {/* Auth Buttons - Desktop */}
+            {/* Auth Buttons (Desktop) */}
             <div className="hidden md:flex items-center space-x-3">
-              <Link to="/login">
-                <Button variant="outline" className="focus-ring">
-                  Login
+              {!token ? (
+                // Show only LOGIN
+                <Link to="/login">
+                  <Button variant="outline" className="focus-ring">
+                    Login
+                  </Button>
+                </Link>
+              ) : (
+                // Show LOGOUT
+                <Button variant="outline" className="focus-ring" onClick={handleLogout}>
+                  Logout
                 </Button>
-              </Link>
-              <Link to="/register">
-                <Button className="btn-primary focus-ring">
-                  Register
-                </Button>
-              </Link>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-muted transition-[var(--transition-smooth)] focus-ring"
-              aria-label="Toggle menu"
+              className="md:hidden p-2 rounded-lg hover:bg-muted transition focus-ring"
             >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Menu */}
         {isOpen && (
           <div className="md:hidden border-t border-border mt-4 pt-4 pb-6 animate-fade-in">
             <div className="flex flex-col space-y-3">
+
               {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
                   className={cn(
-                    "px-4 py-3 rounded-xl text-center font-medium transition-[var(--transition-smooth)]",
+                    "px-4 py-3 rounded-xl text-center font-medium transition",
                     isActive(item.path)
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-muted"
@@ -102,18 +110,31 @@ const Navigation = () => {
                 </Link>
               ))}
 
-              {/* Auth Buttons - Mobile */}
+              {/* Auth Buttons (Mobile) */}
               <div className="flex flex-col space-y-2 pt-4 border-t border-border">
-                <Link to="/login" onClick={() => setIsOpen(false)}>
-                  <Button variant="outline" className="w-full focus-ring">
-                    Login
+
+                {/* Only Login when NOT logged in */}
+                {!token && (
+                  <Link to="/login" onClick={() => setIsOpen(false)}>
+                    <Button variant="outline" className="w-full focus-ring">
+                      Login
+                    </Button>
+                  </Link>
+                )}
+
+                {/* Logout when logged in */}
+                {token && (
+                  <Button
+                    variant="outline"
+                    className="w-full focus-ring"
+                    onClick={() => {
+                      setIsOpen(false);
+                      handleLogout();
+                    }}
+                  >
+                    Logout
                   </Button>
-                </Link>
-                <Link to="/register" onClick={() => setIsOpen(false)}>
-                  <Button className="btn-primary w-full focus-ring">
-                    Register
-                  </Button>
-                </Link>
+                )}
               </div>
             </div>
           </div>

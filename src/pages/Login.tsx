@@ -1,3 +1,4 @@
+// Client/src/pages/Auth/Login.tsx
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -5,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Smartphone, AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { dummyTransgenderData, dummyAadhaarData } from '@/data/identityData';
 
-const Login = () => {
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+const Login: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -21,7 +23,6 @@ const Login = () => {
   // OTP state
   const [otpSent, setOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
@@ -31,7 +32,7 @@ const Login = () => {
 
   useEffect(() => {
     if (resendCountdown > 0) {
-      countdownRef.current = window.setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
+      countdownRef.current = window.setTimeout(() => setResendCountdown((s) => s - 1), 1000);
     } else {
       if (countdownRef.current) {
         clearTimeout(countdownRef.current);
@@ -89,69 +90,75 @@ const Login = () => {
 
     setIdentity(value);
 
-    // after normalization, check for exact match only when format is fully valid:
-    // TG -> length 8 (TG + 6 digits), Aadhaar -> 12 digits
-    if (/^TG\d{6}$/.test(value)) {
-      if (dummyTransgenderData[value]) {
-        setMatchedRecord(dummyTransgenderData[value]);
-        setIdentityError('');
-      } else {
-        setMatchedRecord(null);
-        setIdentityError('Transgender ID not found.');
-      }
-    } else if (/^\d{12}$/.test(value)) {
-      if (dummyAadhaarData[value]) {
-        setMatchedRecord(dummyAadhaarData[value]);
-        setIdentityError('');
-      } else {
-        setMatchedRecord(null);
-        setIdentityError('Aadhaar number not found.');
-      }
-    } else {
-      // not a complete valid format yet
-      setMatchedRecord(null);
-    }
-
     // reset OTP-related state if user changes identity
     setOtpSent(false);
     setOtpValue('');
-    setGeneratedOtp(null);
     setResendCountdown(0);
   };
 
-  // ----------------- send OTP (frontend-only simulate) -----------------
+  // ----------------- send OTP (calls backend) -----------------
   const sendOtp = async () => {
-    // ensure matchedRecord exists and no identityError
-    if (!identity.trim() || identityError || !matchedRecord) {
-      setIdentityError(prev => prev || 'Enter a valid and registered ID to receive OTP.');
+    if (!identity.trim() || identityError) {
+      setIdentityError((prev) => prev || 'Enter a valid ID to receive OTP.');
       return;
     }
 
     setSending(true);
     try {
-      // simulate API call / SMS gateway
-      await new Promise(resolve => setTimeout(resolve, 900));
+      const res = await fetch(`${API_BASE}/api/auth/login/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity }),
+      });
 
-      // generate 6-digit OTP (frontend only)
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(otp);
+      // try to parse JSON but guard against invalid JSON
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        // ignore JSON parse errors
+      }
+
+      // If identity not found -> redirect to register
+      if (res.status === 404) {
+        const msg = data?.error || 'Identity not found. Redirecting to register.';
+        toast({ title: 'Not Registered', description: msg, variant: 'destructive' });
+        // small delay so user sees toast and then redirect
+        setTimeout(() => navigate('/register'), 700);
+        return;
+      }
+
+      if (!res.ok) {
+        const errMsg = data?.error || 'Failed to send OTP. Please try again.';
+        setIdentityError(errMsg);
+        toast({ title: 'Failed to send OTP', description: errMsg, variant: 'destructive' });
+        return;
+      }
+
+      // success branch
+      if (data.user) {
+        setMatchedRecord({
+          name: data.user.name,
+          dob: data.user.dob,
+          email: data.user.email,
+          phone: data.user.phone,
+        });
+      }
+
       setOtpSent(true);
-      setResendCountdown(30); // 30s cooldown
+      setResendCountdown(30);
+      toast({ title: 'OTP Sent', description: 'OTP sent to the registered email/phone.', variant: 'default' });
 
-      // (For development) you can log OTP in console — remove in production
-      // console.log('DEBUG OTP:', otp);
-
-      toast({
-        title: 'OTP Sent Successfully',
-        description: `OTP sent to the registered mobile number.`,
-        variant: 'default',
-      });
+      // Developer convenience: auto-fill dev OTP if provided (DEV ONLY)
+      if (data.devOtp) {
+        // eslint-disable-next-line no-console
+        console.log('DEV OTP (server):', data.devOtp);
+        setOtpValue(String(data.devOtp));
+        toast({ title: 'DEV OTP (for testing)', description: String(data.devOtp), variant: 'default' });
+      }
     } catch (err) {
-      toast({
-        title: 'Failed to send OTP',
-        description: 'Please try again.',
-        variant: 'destructive',
-      });
+      console.error('sendOtp error:', err);
+      toast({ title: 'Network Error', description: 'Cannot reach server. Try again later.', variant: 'destructive' });
     } finally {
       setSending(false);
     }
@@ -160,66 +167,62 @@ const Login = () => {
   // ----------------- resend OTP -----------------
   const resendOtp = async () => {
     if (resendCountdown > 0) return;
-    setGeneratedOtp(null);
     setOtpValue('');
     await sendOtp();
   };
 
-  // ----------------- verify OTP -----------------
+  // ----------------- verify OTP (calls backend) -----------------
   const verifyOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     if (!otpValue.trim()) {
-      toast({
-        title: 'OTP Required',
-        description: 'Please enter the 6-digit OTP sent to your phone.',
-        variant: 'destructive',
-      });
+      toast({ title: 'OTP Required', description: 'Please enter the 6-digit OTP.', variant: 'destructive' });
       return;
     }
-
     if (!/^\d{6}$/.test(otpValue)) {
-      toast({
-        title: 'Invalid OTP',
-        description: 'Enter a valid 6-digit OTP.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid OTP', description: 'Enter a valid 6-digit OTP.', variant: 'destructive' });
       return;
     }
 
     setVerifying(true);
     try {
-      // simulate verify latency
-      await new Promise(resolve => setTimeout(resolve, 900));
-
-      // compare with generated OTP (frontend only)
-      if (generatedOtp && otpValue === generatedOtp) {
-        toast({
-          title: 'Login Successful',
-          description: 'Welcome back! Redirecting to dashboard...',
-          variant: 'default',
-        });
-
-        // clear local OTP state
-        setOtpSent(false);
-        setOtpValue('');
-        setGeneratedOtp(null);
-
-        // navigate to dashboard (adjust route as needed)
-        setTimeout(() => navigate('/dashboard'), 700);
-      } else {
-        toast({
-          title: 'Invalid OTP',
-          description: 'The OTP you entered is incorrect. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    } catch {
-      toast({
-        title: 'Verification Failed',
-        description: 'Please try again.',
-        variant: 'destructive',
+      const res = await fetch(`${API_BASE}/api/auth/login/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity, otp: otpValue }),
       });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errMsg = data?.error || 'Verification failed';
+        toast({ title: 'Verification Failed', description: errMsg, variant: 'destructive' });
+        return;
+      }
+
+      // success: save token and user info
+      if (data.token) localStorage.setItem('token', data.token);
+      if (data.user) {
+        localStorage.setItem('userId', data.user.id || data.user._id || '');
+        localStorage.setItem('name', data.user.name || '');
+        localStorage.setItem('dob', data.user.dob || '');
+        localStorage.setItem('email', data.user.email || '');
+        localStorage.setItem('phone', data.user.phone || '');
+        // <-- store identityNumber from server if available, otherwise use typed identity
+        localStorage.setItem('identityNumber', data.user.identityNumber || identity);
+      }
+
+      toast({ title: 'Login Successful', description: 'Redirecting to dashboard...', variant: 'default' });
+
+      // clear OTP UI
+      setOtpSent(false);
+      setOtpValue('');
+      setResendCountdown(0);
+
+      setTimeout(() => navigate('/'), 700);
+    } catch (err) {
+      console.error('verifyOtp error:', err);
+      toast({ title: 'Network Error', description: 'Cannot reach server. Try again later.', variant: 'destructive' });
     } finally {
       setVerifying(false);
     }
@@ -232,12 +235,11 @@ const Login = () => {
       <div className="py-16">
         <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
           <Card className="empowerment-card p-8">
-
             {/* Header */}
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-gradient-to-r from-trust to-primary rounded-2xl flex items-center justify-center shadow-[var(--shadow-trust)]">
-                  <KeyIconPlaceholder />
+                  <Smartphone className="w-8 h-8 text-white" />
                 </div>
               </div>
               <h1 className="text-3xl font-bold text-gradient-primary mb-2">Welcome Back</h1>
@@ -246,7 +248,6 @@ const Login = () => {
 
             {/* Single-input OTP form */}
             <form onSubmit={verifyOtp} className="space-y-6">
-
               {/* Identity input */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Transgender ID / Aadhaar Number</Label>
@@ -275,18 +276,18 @@ const Login = () => {
                 )}
               </div>
 
-              {/* Send OTP button (enabled only when identity valid & matched) */}
+              {/* Send OTP button */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Button
                     type="button"
                     onClick={sendOtp}
-                    disabled={!matchedRecord || sending || otpSent}
+                    disabled={!identity.trim() || !!identityError || sending || otpSent}
                     className="btn-primary w-full"
                   >
                     {sending ? (
                       <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         <span>Sending...</span>
                       </div>
                     ) : otpSent ? (
@@ -325,14 +326,10 @@ const Login = () => {
                     </div>
                   </div>
 
-                  <Button
-                    type="submit"
-                    disabled={verifying}
-                    className="btn-primary w-full text-lg py-3 focus-ring"
-                  >
+                  <Button type="submit" disabled={verifying} className="btn-primary w-full text-lg py-3 focus-ring">
                     {verifying ? (
                       <div className="flex items-center space-x-2">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         <span>Verifying...</span>
                       </div>
                     ) : (
@@ -344,7 +341,6 @@ const Login = () => {
                   </Button>
                 </div>
               )}
-
             </form>
 
             {/* Register Link */}
@@ -362,9 +358,7 @@ const Login = () => {
           <div className="mt-6 p-4 bg-accent-light/20 border border-accent-light rounded-xl">
             <div className="text-center">
               <h4 className="font-medium text-accent mb-2">Need Help?</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                If you're having trouble logging in, our support team is here to help.
-              </p>
+              <p className="text-sm text-muted-foreground mb-3">If you're having trouble logging in, our support team is here to help.</p>
               <Link to="/contact">
                 <Button variant="outline" className="text-accent border-accent hover:bg-accent-light/10">
                   Contact Support
@@ -380,12 +374,6 @@ const Login = () => {
 
 /* ---------- small helpers ---------- */
 
-// placeholder for KeyRound icon area in header so design stays consistent
-function KeyIconPlaceholder() {
-  return <Smartphone className="w-8 h-8 text-white" />; // you can replace with KeyRound if you prefer
-}
-
-// mask phone like 98******10
 function maskPhone(phone?: string) {
   if (!phone) return '';
   const s = phone.replace(/\D/g, '');

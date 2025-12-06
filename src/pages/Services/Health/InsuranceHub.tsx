@@ -1,3 +1,4 @@
+// Client/src/pages/Services/InsuranceHub.tsx
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,28 +11,86 @@ const InsuranceHub = () => {
   const navigate = useNavigate();
   const gradientColor = moduleColors["health"];
 
-  const [treatmentType, setTreatmentType] = useState("");
-  const [documents, setDocuments] = useState<FileList | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Form state
+  const [treatmentType, setTreatmentType] = useState<string>("");
+  const [preferredHospital, setPreferredHospital] = useState<string>("");
+  const [estimatedDate, setEstimatedDate] = useState<string>("");
 
+  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const [doctorLetterFile, setDoctorLetterFile] = useState<File | null>(null);
+  const [medicalEstimateFile, setMedicalEstimateFile] = useState<File | null>(null);
+  const [additionalFiles, setAdditionalFiles] = useState<FileList | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
+
+  // ---------------------------------------------------------
+  // FIX APPLIED HERE — now sending name, email, phone, dob
+  // ---------------------------------------------------------
   const handleApply = async () => {
-    if (!treatmentType || !documents) {
-      alert("Please fill all fields");
+    if (!treatmentType) {
+      alert("Please select treatment type");
       return;
     }
 
-    const form = new FormData();
-    form.append("userId", localStorage.getItem("userId") || "demo-user");
-    form.append("policyName", "SRS+ Gender Affirming Surgery Insurance");
-    form.append("treatmentType", treatmentType);
-    for (let file of documents) form.append("documents", file);
+    setLoading(true);
+    try {
+      const form = new FormData();
 
-    await fetch("http://localhost:5000/insurance/apply", {
-      method: "POST",
-      body: form,
-    });
+      // required fields
+      form.append("userId", localStorage.getItem("userId") || "demo-user");
+      form.append("policyName", "SRS+ Gender Affirming Surgery Insurance");
+      form.append("treatmentType", treatmentType);
 
-    alert("Insurance request submitted!");
+      // send hospital + date if provided
+      if (preferredHospital) form.append("preferredHospital", preferredHospital);
+      if (estimatedDate) form.append("estimatedTreatmentDate", estimatedDate);
+
+      // ---------------------------
+      // ADD USER DETAILS TO BACKEND
+      // ---------------------------
+      const storedName = localStorage.getItem("name");
+      const storedEmail = localStorage.getItem("email");
+      const storedPhone = localStorage.getItem("phone");
+      const storedDob = localStorage.getItem("dob");
+
+      if (storedName) form.append("name", storedName);
+      if (storedEmail) form.append("email", storedEmail);
+      if (storedPhone) form.append("phone", storedPhone);
+      if (storedDob) form.append("dob", storedDob);
+
+      // file uploads
+      if (idProofFile) form.append("idProof", idProofFile);
+      if (doctorLetterFile) form.append("doctorLetter", doctorLetterFile);
+      if (medicalEstimateFile) form.append("medicalEstimate", medicalEstimateFile);
+
+      if (additionalFiles) {
+        for (let i = 0; i < additionalFiles.length; i++) {
+          form.append("documents", additionalFiles[i]);
+        }
+      }
+
+      const token = localStorage.getItem("token");
+      const headers: HeadersInit = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch("http://localhost:5000/insurance/apply", {
+        method: "POST",
+        headers,
+        body: form, // DO NOT manually set Content-Type
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || data?.detail || "Server error");
+
+      alert("Insurance request submitted! Application ID: " + data.id);
+      setSubmittedId(data.id);
+    } catch (err: any) {
+      console.error("Submit error:", err);
+      alert("Error submitting application: " + (err.message || "Unknown error"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,34 +111,25 @@ const InsuranceHub = () => {
       </div>
 
       {/* Banner */}
-      <section
-        className={`py-20 bg-gradient-to-r ${gradientColor} text-center text-white`}
-      >
+      <section className={`py-20 bg-gradient-to-r ${gradientColor} text-center text-white`}>
         <div className="max-w-3xl mx-auto px-6">
           <h1 className="text-5xl font-bold mb-4">Insurance Hub</h1>
-          <p className="text-lg opacity-90">
-            Apply for secure and inclusive gender-affirming surgery insurance.
-          </p>
+          <p className="text-lg opacity-90">Apply for secure and inclusive gender-affirming surgery insurance.</p>
         </div>
       </section>
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-16 space-y-16">
-
         {/* Insurance Overview */}
         <Card className="p-10 shadow-xl bg-white border">
           <div className="flex items-center gap-4 mb-10">
-            <div
-              className={`p-4 rounded-xl text-white bg-gradient-to-r ${gradientColor}`}
-            >
+            <div className={`p-4 rounded-xl text-white bg-gradient-to-r ${gradientColor}`}>
               <Shield className="w-8 h-8" />
             </div>
 
             <div>
               <h2 className="text-3xl font-bold">SRS+ Gender Affirming Insurance</h2>
-              <p className="text-muted-foreground mt-1">
-                Trusted coverage designed for transgender individuals.
-              </p>
+              <p className="text-muted-foreground mt-1">Trusted coverage designed for transgender individuals.</p>
             </div>
           </div>
 
@@ -114,59 +164,34 @@ const InsuranceHub = () => {
           </div>
         </Card>
 
-        {/* Apply Section (REPLACED + COMBINED) */}
+        {/* Apply Section */}
         <section className="mt-20">
-          <h2 className="text-3xl font-bold mb-10 text-center">
-            Apply for Pre-Authorization
-          </h2>
+          <h2 className="text-3xl font-bold mb-10 text-center">Apply for Pre-Authorization</h2>
 
           <Card className="p-10 shadow-xl border bg-white space-y-8">
-
             {/* USER DETAILS */}
             <div>
               <h3 className="text-xl font-semibold mb-4">Your Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
                 <div>
                   <label className="text-sm font-medium">Name</label>
-                  <input
-                    type="text"
-                    value={localStorage.getItem("name") || "User Name"}
-                    readOnly
-                    className="w-full border px-4 py-3 rounded-lg bg-gray-100"
-                  />
+                  <input type="text" value={localStorage.getItem("name") || ""} readOnly className="w-full border px-4 py-3 rounded-lg bg-gray-100" />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium">Email</label>
-                  <input
-                    type="text"
-                    value={localStorage.getItem("email") || "user@example.com"}
-                    readOnly
-                    className="w-full border px-4 py-3 rounded-lg bg-gray-100"
-                  />
+                  <input type="text" value={localStorage.getItem("email") || ""} readOnly className="w-full border px-4 py-3 rounded-lg bg-gray-100" />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium">Phone</label>
-                  <input
-                    type="text"
-                    value={localStorage.getItem("phone") || "+91 00000 00000"}
-                    readOnly
-                    className="w-full border px-4 py-3 rounded-lg bg-gray-100"
-                  />
+                  <input type="text" value={localStorage.getItem("phone") || ""} readOnly className="w-full border px-4 py-3 rounded-lg bg-gray-100" />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium">Date of Birth</label>
-                  <input
-                    type="text"
-                    value={localStorage.getItem("dob") || "01/01/2000"}
-                    readOnly
-                    className="w-full border px-4 py-3 rounded-lg bg-gray-100"
-                  />
+                  <input type="text" value={localStorage.getItem("dob") || ""} readOnly className="w-full border px-4 py-3 rounded-lg bg-gray-100" />
                 </div>
-
               </div>
             </div>
 
@@ -175,14 +200,9 @@ const InsuranceHub = () => {
               <h3 className="text-xl font-semibold mb-4">Treatment Information</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
                 <div>
                   <label className="text-sm font-semibold">Treatment Type</label>
-                  <select
-                    className="w-full border px-4 py-3 rounded-lg bg-white"
-                    value={treatmentType}
-                    onChange={(e) => setTreatmentType(e.target.value)}
-                  >
+                  <select className="w-full border px-4 py-3 rounded-lg bg-white" value={treatmentType} onChange={(e) => setTreatmentType(e.target.value)}>
                     <option value="">Select Treatment</option>
                     <option value="Top Surgery">Top Surgery</option>
                     <option value="Bottom Surgery">Bottom Surgery</option>
@@ -193,23 +213,19 @@ const InsuranceHub = () => {
 
                 <div>
                   <label className="text-sm font-semibold">Preferred Hospital</label>
-                  <select className="w-full border px-4 py-3 rounded-lg bg-white">
-                    <option>Select Hospital</option>
-                    <option>Apollo Hospitals</option>
-                    <option>MIOT Hospitals</option>
-                    <option>Fortis Healthcare</option>
-                    <option>Government Hospital</option>
+                  <select className="w-full border px-4 py-3 rounded-lg bg-white" value={preferredHospital} onChange={(e) => setPreferredHospital(e.target.value)}>
+                    <option value="">Select Hospital</option>
+                    <option value="Apollo Hospitals">Apollo Hospitals</option>
+                    <option value="MIOT Hospitals">MIOT Hospitals</option>
+                    <option value="Fortis Healthcare">Fortis Healthcare</option>
+                    <option value="Government Hospital">Government Hospital</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-sm font-semibold">Estimated Treatment Date</label>
-                  <input
-                    type="date"
-                    className="w-full border px-4 py-3 rounded-lg bg-white"
-                  />
+                  <input type="date" className="w-full border px-4 py-3 rounded-lg bg-white" value={estimatedDate} onChange={(e) => setEstimatedDate(e.target.value)} />
                 </div>
-
               </div>
             </div>
 
@@ -218,88 +234,56 @@ const InsuranceHub = () => {
               <h3 className="text-xl font-semibold mb-4">Documents Upload</h3>
 
               <div className="space-y-6">
-
-                {/* ID PROOF */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    ID Proof (Aadhaar / Trans ID)
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">ID Proof</label>
                   <div className="flex items-center gap-4 border p-4 rounded-lg bg-muted/40">
                     <Upload className="w-6 h-6 text-primary" />
-                    <input type="file" className="text-sm" />
+                    <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => setIdProofFile(e.target.files?.[0] || null)} className="text-sm" />
                   </div>
                 </div>
 
-                {/* DOCTOR LETTER */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Doctor Recommendation Letter
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">Doctor Recommendation Letter</label>
                   <div className="flex items-center gap-4 border p-4 rounded-lg bg-muted/40">
                     <Upload className="w-6 h-6 text-primary" />
-                    <input type="file" className="text-sm" />
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setDoctorLetterFile(e.target.files?.[0] || null)} className="text-sm" />
                   </div>
                 </div>
 
-                {/* MEDICAL ESTIMATE */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Medical Estimate PDF
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">Medical Estimate PDF</label>
                   <div className="flex items-center gap-4 border p-4 rounded-lg bg-muted/40">
                     <Upload className="w-6 h-6 text-primary" />
-                    <input type="file" className="text-sm" />
+                    <input type="file" accept=".pdf" onChange={(e) => setMedicalEstimateFile(e.target.files?.[0] || null)} className="text-sm" />
                   </div>
                 </div>
 
-                {/* ADDITIONAL FILES */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
-                    Additional Documents
-                  </label>
+                  <label className="block text-sm font-semibold mb-2">Additional Documents</label>
                   <div className="flex items-center gap-4 border p-4 rounded-lg bg-muted/40">
                     <Upload className="w-6 h-6 text-primary" />
-                    <input
-                      type="file"
-                      multiple
-                      onChange={(e) => setDocuments(e.target.files)}
-                      className="text-sm"
-                    />
+                    <input type="file" multiple onChange={(e) => setAdditionalFiles(e.target.files)} className="text-sm" />
                   </div>
                 </div>
-
               </div>
 
-              <p className="text-xs text-muted-foreground mt-2">
-                Supported Formats: PDF, JPG, PNG — Max 10 MB each
-              </p>
-
-              <div className="mt-3 text-green-700 text-sm flex items-center gap-2">
-                🔒 Your documents are securely encrypted and transmitted.
-              </div>
+              <p className="text-xs text-muted-foreground mt-2">Supported Formats: PDF, JPG, PNG — Max 10 MB each</p>
             </div>
 
-            {/* SUBMIT BUTTON */}
-            <Button
-              className={`w-full bg-gradient-to-r ${gradientColor} text-white py-3 text-lg`}
-              onClick={handleApply}
-              disabled={loading}
-            >
+            <Button className={`w-full bg-gradient-to-r ${gradientColor} text-white py-3 text-lg`} onClick={handleApply} disabled={loading}>
               {loading ? "Submitting..." : "Submit Application"}
             </Button>
 
+            {submittedId && <div className="text-sm text-green-700">Application submitted. ID: {submittedId}</div>}
           </Card>
         </section>
 
-        {/* Info Box */}
         <div className="flex items-start gap-4 p-6 border-l-4 border-blue-600 bg-blue-50 rounded-xl">
           <Info className="w-6 h-6 text-blue-600" />
           <p className="text-gray-700 text-sm leading-relaxed">
-            Your application will be reviewed by authorized officers.
-            You can track updates in <b>My Applications → Insurance</b>.
+            Your application will be reviewed by authorized officers. You can track updates in <b>My Applications → Insurance</b>.
           </p>
         </div>
-
       </div>
     </div>
   );
