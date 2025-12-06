@@ -1,0 +1,40 @@
+[
+  {
+    "id": "koovagam-2025",
+    "title": "Koovagam Festival (Kuthandavar-Aravan Mela)",
+    "start_date": "2025-04-22",
+    "end_date": "2025-05-06",
+    "place": "Koovagam (near Villupuram)",
+    "city": "Koovagam",
+    "state": "Tamil Nadu",
+    "category": "Festival",
+    "description": "Annual 18-day gathering celebrating transgender identity and rituals around Aravan. Includes cultural programmes and the Miss Koovagam contest.",
+    "source_name": "Holidify - Koovagam Festival",
+    "source_url": "https://www.holidify.com/pages/koovagam-festival-4151.html"
+  },
+  {
+    "id": "mumbai-pride-2025",
+    "title": "Mumbai Queer Pride — Pride Month Activities",
+    "start_date": "2025-06-01",
+    "end_date": "2025-06-30",
+    "place": "Mumbai (various venues)",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "category": "Pride / Parade",
+    "description": "Pride month events in Mumbai including the Pride Walk, cultural activities and community programmes.",
+    "source_name": "Mumbai Queer Pride",
+    "source_url": "https://www.mumbaiqueerpride.org/pride-calendar-2025"
+  },
+  {
+    "id": "bangalore-meetup-2025",
+    "title": "Trans & LGBTQIA+ Community Meetup — Bangalore",
+    "start_date": "2025-03-15",
+    "place": "Bengaluru Community Centre",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "category": "Meetup / Workshop",
+    "description": "Local support group meetup with counseling sessions and skill-building workshops.",
+    "source_name": "Eventbrite listings",
+    "source_url": "https://www.eventbrite.com/d/india--bangalore/trans-in-india/"
+  }
+]
